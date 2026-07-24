@@ -231,8 +231,8 @@ a.src{color:var(--ink-soft);font-size:12.5px}
       <button class="mode" id="startExam">
         <span class="tag">Exam mode</span>
         <h3>Take the practical</h3>
-        <div class="k">2:00 per station, then it advances on its own — the bell. No feedback until the end,
-        then a full scored review. Pick the length below.</div>
+        <div class="k">2:00 per station. Submit (or wait for the bell) and the correct answer is
+        revealed before you move on. Full scored review at the end. Pick the length below.</div>
       </button>
       <button class="mode" id="startStudy">
         <span class="tag">Study mode</span>
@@ -430,7 +430,7 @@ $('#quitbtn').onclick=()=>{stopTimer();S=null;$('#quiz').classList.add('hidden')
 let timerId=null,remain=0;
 function stopTimer(){if(timerId){clearInterval(timerId);timerId=null;}}
 function startTimer(){remain=120;paintTimer();stopTimer();timerId=setInterval(()=>{remain--;paintTimer();
-  if(remain<=0){stopTimer();commit();next();}},1000);}
+  if(remain<=0){stopTimer();commit();doCheck();}},1000);}
 function paintTimer(){const t=$('#timer');const m=Math.floor(remain/60),s=remain%60;
   t.textContent=m+':'+String(s).padStart(2,'0');t.classList.toggle('warn',remain<=15);}
 
@@ -512,9 +512,9 @@ function renderQ(){
 
   const act=$('#actions');
   if(S.mode==='exam'){
-    const b=el('button','btn',S.idx===S.qs.length-1?'Submit & finish':'Submit & next');
-    b.onclick=()=>{commit();next();};act.appendChild(b);
-    act.appendChild(el('span','muted',' the bell auto-advances at 0:00'));
+    const b=el('button','btn','Submit answer');
+    b.onclick=()=>{commit();doCheck();};act.appendChild(b);
+    act.appendChild(el('span','muted',' the 2:00 bell reveals the answer'));
     startTimer();
   }else{ // study or mc
     const check=el('button','btn','Check answer');check.onclick=doCheck;act.appendChild(check);
@@ -528,6 +528,7 @@ function commit(){const r=S.resp[S.idx];
   if(S.mode!=='mc'){const fn=$('#fName'),ff=$('#fFunc');if(fn)r.name=fn.value;if(ff)r.func=ff.value;}}
 
 function doCheck(){
+  stopTimer();
   const q=S.qs[S.idx],r=S.resp[S.idx];commit();
   const you = S.mode==='mc' ? r.pick : r.name;
   // In MC the correct option IS the display name, so grade by exact option match.
