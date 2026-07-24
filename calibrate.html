@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#333;font-family:sans-serif}
+.wrap{position:relative;display:inline-block}
+img{display:block;width:640px;height:auto}
+.gl{position:absolute;background:rgba(255,0,255,.5)}
+.v{top:0;bottom:0;width:1px}.h{left:0;right:0;height:1px}
+.v5{background:rgba(255,0,0,.9);width:1.5px}.h5{background:rgba(255,0,0,.9);height:1.5px}
+.lbl{position:absolute;color:#fff;font-size:11px;font-weight:bold;background:rgba(0,0,0,.75);padding:0 2px;z-index:5}
+</style></head><body>
+<div class="wrap"><img id="im"><div id="g"></div></div>
+<script>
+const f=new URLSearchParams(location.search).get('f')||'heart_internal.jpg';
+document.getElementById('im').src='images/'+f;
+const g=document.getElementById('g');
+for(let p=0;p<=100;p+=5){
+ const big=p%10===0;
+ const v=document.createElement('div');v.className='gl v'+(big?' v5':'');v.style.left=p+'%';g.appendChild(v);
+ const h=document.createElement('div');h.className='gl h'+(big?' h5':'');h.style.top=p+'%';g.appendChild(h);
+ if(big){for(const yy of ['0%','50%','98%']){const l=document.createElement('div');l.className='lbl';l.style.left=p+'%';l.style.top=yy;l.textContent=p;g.appendChild(l);}
+ for(const xx of ['0%','50%','92%']){const l=document.createElement('div');l.className='lbl';l.style.top=p+'%';l.style.left=xx;l.textContent=p;g.appendChild(l);}}
+}
+</script></body></html>

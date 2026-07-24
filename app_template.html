@@ -1,0 +1,622 @@
+<meta charset="utf-8">
+<title>Mock Lab Practical 2 — Cardiovascular & Respiratory</title>
+<style>
+:root{
+  --paper:#faf6f4; --ink:#1a1516; --ink-soft:#5c5153; --line:#e7ddd9;
+  --card:#ffffff; --accent:#b5232f; --accent-soft:#f3dcdc;
+  --oxy:#b5232f; --deoxy:#2f5b86; --oxy-soft:#f5dede; --deoxy-soft:#dbe6f0;
+  --good:#2e7d52; --good-soft:#dcefe3; --miss:#b9791a; --miss-soft:#f3e6cf;
+  --shadow:0 1px 2px rgba(26,21,22,.06),0 6px 20px rgba(26,21,22,.08);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#161213; --ink:#f2eae8; --ink-soft:#b0a3a0; --line:#332b2c;
+  --card:#211b1c; --accent:#e8636d; --accent-soft:#3a2224;
+  --oxy:#e8636d; --deoxy:#7fb0dd; --oxy-soft:#3a2224; --deoxy-soft:#1f2c38;
+  --good:#63c491; --good-soft:#1c3128; --miss:#e0a94e; --miss-soft:#33280f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+}}
+:root[data-theme="light"]{
+  --paper:#faf6f4; --ink:#1a1516; --ink-soft:#5c5153; --line:#e7ddd9;
+  --card:#ffffff; --accent:#b5232f; --accent-soft:#f3dcdc;
+  --oxy:#b5232f; --deoxy:#2f5b86; --oxy-soft:#f5dede; --deoxy-soft:#dbe6f0;
+  --good:#2e7d52; --good-soft:#dcefe3; --miss:#b9791a; --miss-soft:#f3e6cf;
+  --shadow:0 1px 2px rgba(26,21,22,.06),0 6px 20px rgba(26,21,22,.08);
+}
+:root[data-theme="dark"]{
+  --paper:#161213; --ink:#f2eae8; --ink-soft:#b0a3a0; --line:#332b2c;
+  --card:#211b1c; --accent:#e8636d; --accent-soft:#3a2224;
+  --oxy:#e8636d; --deoxy:#7fb0dd; --oxy-soft:#3a2224; --deoxy-soft:#1f2c38;
+  --good:#63c491; --good-soft:#1c3128; --miss:#e0a94e; --miss-soft:#33280f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:0 20px 64px}
+button{font-family:inherit;cursor:pointer}
+h1,h2,h3{font-family:var(--serif);font-weight:600;text-wrap:balance;margin:0}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+  font-weight:600;font-family:var(--sans)}
+.muted{color:var(--ink-soft)}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:820px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:14px}
+.brand{font-family:var(--serif);font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.progress{flex:1;height:5px;background:var(--line);border-radius:99px;overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.timer{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:15px;
+  padding:3px 9px;border-radius:7px;background:var(--card);border:1px solid var(--line);min-width:58px;text-align:center}
+.timer.warn{color:#fff;background:var(--accent);border-color:var(--accent);animation:pulseT 1s infinite}
+@keyframes pulseT{50%{opacity:.72}}
+.themebtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;
+  width:34px;height:30px;font-size:15px;display:grid;place-items:center}
+.iconbtn{border:1px solid var(--line);background:var(--card);color:var(--ink-soft);border-radius:7px;
+  height:30px;padding:0 10px;font-size:13px}
+
+/* start screen */
+.hero{padding:56px 0 8px}
+.hero h1{font-size:clamp(30px,6vw,46px);line-height:1.05;letter-spacing:-.01em}
+.hero p.lead{font-size:17px;max-width:56ch;margin:16px 0 0;color:var(--ink-soft)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:34px 0 8px}
+@media(max-width:720px){.modes{grid-template-columns:1fr}}
+.mode{position:relative;text-align:left;border:1px solid var(--line);background:var(--card);
+  border-radius:14px;padding:22px 20px;box-shadow:var(--shadow);transition:transform .15s,border-color .15s}
+.mode:hover{transform:translateY(-2px);border-color:var(--accent)}
+.mode:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mode h3{font-size:20px;margin-bottom:4px}
+.mode .k{font-size:13.5px;color:var(--ink-soft);margin-top:6px}
+.mode .tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--accent);background:var(--accent-soft);padding:3px 8px;border-radius:99px;margin-bottom:10px}
+.opts{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-top:26px;font-size:14px}
+.opts label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.examlen{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+.examlen .ell-label{font-size:13px;font-weight:600}
+.seg2{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}
+.seg2 button{border:0;background:var(--card);color:var(--ink-soft);padding:8px 16px;font-size:14px;font-weight:600;
+  border-right:1px solid var(--line);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.seg2 button:last-child{border-right:0}
+.seg2 button[aria-pressed=true]{background:var(--accent);color:#fff}
+.seg2 button:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.ell-hint{font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font-size:12.5px;padding:5px 11px;border-radius:99px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink-soft)}
+.scope{margin-top:40px;border-top:1px solid var(--line);padding-top:22px}
+.scope h3{font-size:15px;font-family:var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);font-weight:600}
+.credits{margin-top:18px;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
+.credits summary{list-style:none;cursor:pointer;padding:11px 14px;font-size:12.5px;font-weight:600;
+  color:var(--ink-soft);display:flex;align-items:center;gap:8px;user-select:none}
+.credits summary::-webkit-details-marker{display:none}
+.credits summary .tw{transition:transform .15s}
+.credits[open] summary .tw{transform:rotate(90deg)}
+.credits .body{padding:0 14px 12px;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+.credits .body p.note{margin:2px 0 12px}
+.credits ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px}
+.credits li{padding-left:12px;border-left:2px solid var(--line)}
+.credits li .w{color:var(--ink)}
+.credits li .s{display:block;margin-top:2px}
+.credits li .lic{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;
+  background:var(--accent-soft);color:var(--accent);margin-left:6px;white-space:nowrap}
+.credits a{color:var(--accent)}
+
+/* station card */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+  overflow:hidden;margin-top:22px}
+.card-head{padding:16px 20px 14px;border-bottom:1px solid var(--line)}
+.card-head .st{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.card-head .cap{font-family:var(--serif);font-size:18px;margin-top:3px}
+.figure{position:relative;background:#fff;line-height:0;overflow:hidden}
+.figure img{position:absolute;display:block;max-width:none}
+.cover{position:absolute;background:#fff}
+.marker{position:absolute;width:26px;height:26px;transform:translate(-50%,-50%);pointer-events:none;z-index:4}
+.marker .core{position:absolute;inset:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 3px #fff,0 0 0 4px var(--accent),0 2px 6px rgba(0,0,0,.4)}
+.marker .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);
+  animation:ping 1.6s cubic-bezier(0,0,.2,1) infinite}
+@keyframes ping{0%{transform:scale(.55);opacity:.9}80%,100%{transform:scale(1.5);opacity:0}}
+@media(prefers-reduced-motion:reduce){.marker .ring{animation:none;opacity:.5}.timer.warn{animation:none}}
+
+.form{padding:18px 20px 20px;display:flex;flex-direction:column;gap:16px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field label .n{color:var(--accent);font-family:var(--mono);margin-right:6px}
+.field input[type=text],.field textarea{width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+  background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.field textarea{min-height:58px;resize:vertical}
+.field input:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:var(--card);color:var(--ink-soft);padding:9px 16px;font-size:14px;font-weight:600;
+  border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true][data-v=Oxygenated]{background:var(--oxy);color:#fff}
+.seg button[aria-pressed=true][data-v=Deoxygenated]{background:var(--deoxy);color:#fff}
+.actions{display:flex;gap:10px;align-items:center;padding:0 20px 20px;flex-wrap:wrap}
+.btn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:9px;
+  padding:11px 20px;font-size:15px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.spacer{flex:1}
+
+/* feedback */
+.fb{border-top:1px solid var(--line);padding:16px 20px;display:flex;flex-direction:column;gap:12px;
+  background:var(--paper)}
+.fb-row{display:flex;gap:11px;align-items:flex-start;font-size:14.5px}
+.fb-ico{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  font-size:13px;font-weight:700;margin-top:1px}
+.ok{background:var(--good)} .no{background:var(--accent)} .warnb{background:var(--miss)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px}
+.pill.oxy{background:var(--oxy-soft);color:var(--oxy)} .pill.deoxy{background:var(--deoxy-soft);color:var(--deoxy)}
+.selfgrade{display:flex;gap:10px;margin-top:2px}
+.sg{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 13px;font-size:13.5px;font-weight:600;color:var(--ink)}
+.sg.gpick{background:var(--good);border-color:var(--good);color:#fff}
+.sg.mpick{background:var(--miss);border-color:var(--miss);color:#fff}
+.ans{font-weight:600}
+
+/* multiple-choice options */
+.mcq{display:flex;flex-direction:column;gap:9px}
+.mcopt{display:flex;align-items:center;gap:11px;text-align:left;width:100%;border:1px solid var(--line);
+  background:var(--paper);color:var(--ink);border-radius:10px;padding:12px 14px;font-size:15px;transition:border-color .12s,background .12s}
+.mcopt:hover:not(:disabled){border-color:var(--accent)}
+.mcopt .key{flex:none;width:24px;height:24px;border-radius:6px;border:1px solid var(--line);display:grid;place-items:center;
+  font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-soft)}
+.mcopt[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+.mcopt[aria-pressed=true] .key{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mcopt.correct{border-color:var(--good);background:var(--good-soft)} .mcopt.correct .key{background:var(--good);color:#fff;border-color:var(--good)}
+.mcopt.wrong{border-color:var(--accent);background:var(--accent-soft)} .mcopt.wrong .key{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mcopt:disabled{cursor:default}
+
+/* flag button + note */
+.flagbtn{border:1px solid var(--line);background:var(--card);color:var(--ink-soft);border-radius:7px;
+  height:30px;padding:0 11px;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.flagbtn.on{border-color:var(--miss);background:var(--miss-soft);color:var(--miss)}
+.flagnote{margin:0 20px 16px;display:none}
+.flagnote.show{display:block}
+.flagnote textarea{width:100%;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--miss-soft);
+  border:1px solid var(--miss);border-radius:9px;padding:9px 11px;min-height:44px;resize:vertical}
+.card-head-row{display:flex;align-items:flex-start;gap:12px}
+.card-head-row .cap-wrap{flex:1;min-width:0}
+
+/* flags review panel */
+.flagpanel{border:1px solid var(--miss);border-radius:12px;background:var(--miss-soft);padding:16px 18px;margin:22px 0}
+.flagpanel h3{font-family:var(--sans);font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--miss);margin-bottom:10px}
+.flagpanel ul{margin:0 0 14px;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.flagpanel li{font-size:14px;padding-left:12px;border-left:2px solid var(--miss)}
+.flagpanel li .fn{display:block;color:var(--ink-soft);font-size:13px;margin-top:1px}
+.flagpanel .row{display:flex;gap:10px;flex-wrap:wrap}
+.startflags{margin-top:16px}
+
+/* results */
+.results{margin-top:34px}
+.scoregrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}
+@media(max-width:560px){.scoregrid{grid-template-columns:1fr}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:18px;box-shadow:var(--shadow)}
+.stat .lab{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.stat .big{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:30px;font-weight:600;margin-top:6px}
+.stat .sub{font-size:13px;color:var(--ink-soft)}
+.review .item{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:12px;background:var(--card)}
+.review .q{font-weight:600;font-family:var(--serif);font-size:16px}
+.review .line{font-size:14px;margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
+.review .yours{color:var(--ink-soft)}
+.hidden{display:none!important}
+a.src{color:var(--ink-soft);font-size:12.5px}
+</style>
+
+<div class="topbar hidden" id="topbar"><div class="topbar-in">
+  <div class="brand"><span class="dot"></span><span>Lab Practical 2</span></div>
+  <div class="progress"><i id="prog"></i></div>
+  <div class="timer hidden" id="timer">2:00</div>
+  <button class="iconbtn" id="quitbtn">Quit</button>
+  <button class="themebtn" id="theme2" title="Toggle theme">◐</button>
+</div></div>
+
+<div class="wrap">
+  <!-- START -->
+  <section id="start">
+    <div style="display:flex;justify-content:flex-end;padding-top:16px">
+      <button class="themebtn" id="theme1" title="Toggle theme">◐</button>
+    </div>
+    <div class="hero">
+      <div class="eyebrow">BIOL 40B · Human Anatomy &amp; Physiology</div>
+      <h1>Mock Lab Practical&nbsp;2</h1>
+      <p class="lead">A timed-station rehearsal for Lab Exam 2 (Labs 5–8). A structure is pinned on
+      each image — <strong>type what it is</strong>, give <strong>one function</strong>, and where blood is present,
+      say whether it's <strong>oxygenated or deoxygenated</strong>. Just like the real bench.</p>
+    </div>
+    <div class="modes">
+      <button class="mode" id="startExam">
+        <span class="tag">Exam mode</span>
+        <h3>Take the practical</h3>
+        <div class="k">2:00 per station, then it advances on its own — the bell. No feedback until the end,
+        then a full scored review. Pick the length below.</div>
+      </button>
+      <button class="mode" id="startStudy">
+        <span class="tag">Study mode</span>
+        <h3>Study the stations</h3>
+        <div class="k">Untimed. Check each answer as you go — your name is auto-graded and the model
+        function is revealed for you to self-mark.</div>
+      </button>
+      <button class="mode" id="startMC">
+        <span class="tag">Practice</span>
+        <h3>Multiple choice</h3>
+        <div class="k">Untimed warm-up. Pick the pinned structure from four options and get instant
+        feedback — good for building recall before the fill-in-the-blank test.</div>
+      </button>
+    </div>
+    <div class="examlen">
+      <span class="ell-label">Exam length</span>
+      <div class="seg2" id="lenSeg">
+        <button type="button" data-n="20" aria-pressed="false">20</button>
+        <button type="button" data-n="40" aria-pressed="true">40</button>
+        <button type="button" data-n="all" aria-pressed="false">All</button>
+      </div>
+      <span class="muted ell-hint" id="lenHint"></span>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="shuffle"> Shuffle question order</label>
+      <span class="muted" id="qcount"></span>
+    </div>
+    <div id="startflags" class="startflags"></div>
+    <div class="scope">
+      <h3>Stations in this build</h3>
+      <div class="chips" id="stationchips"></div>
+      <p class="muted" style="font-size:13px;margin-top:14px" id="scopenote"></p>
+      <details class="credits" id="credits">
+        <summary><span class="tw">▸</span> Image credits &amp; sources</summary>
+        <div class="body">
+          <p class="note">Diagrams are used here for non-commercial educational study. Where a source
+          is known it is credited below; unconfirmed items are marked as such.</p>
+          <ul id="creditlist"></ul>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" class="hidden"></section>
+
+  <!-- RESULTS -->
+  <section id="results" class="hidden"></section>
+</div>
+
+<script>
+const DATA = /*__PAYLOAD__*/null;
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+
+/* theme */
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('lp_theme',t)}catch(e){}}
+function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme');
+  const isDark=cur?cur==='dark':matchMedia('(prefers-color-scheme:dark)').matches;applyTheme(isDark?'light':'dark');}
+try{const s=localStorage.getItem('lp_theme');if(s)applyTheme(s)}catch(e){}
+$('#theme1').onclick=toggleTheme;$('#theme2').onclick=toggleTheme;
+
+/* escape user text before putting it in innerHTML */
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* normalize for answer checking — articles only; side (left/right) is significant */
+function norm(s){return (s||'').toLowerCase()
+  .replace(/&/g,'and').replace(/[^a-z0-9 ]/g,' ')
+  .replace(/\b(the|a|an|of)\b/g,' ')
+  .replace(/\s+/g,' ').trim();}
+function normStrict(s){return (s||'').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+function checkName(input,answers){
+  const ni=normStrict(input), nl=norm(input);
+  if(!ni)return false;
+  for(const a of answers){ if(normStrict(a)===ni) return true; }
+  for(const a of answers){ if(norm(a)===nl && nl.length>2) return true; }
+  return false;
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ---- flag store (persists across reloads via localStorage) ---- */
+const FLAGKEY='lp_flags_v1';
+let flags={};
+try{flags=JSON.parse(localStorage.getItem(FLAGKEY))||{};}catch(e){flags={};}
+function saveFlags(){try{localStorage.setItem(FLAGKEY,JSON.stringify(flags));}catch(e){}}
+const qid=q=>q.img+'||'+q.name;
+const isFlagged=q=>qid(q) in flags;
+function toggleFlag(q){const id=qid(q);if(id in flags)delete flags[id];else flags[id]='';saveFlags();}
+function setNote(q,note){const id=qid(q);if(id in flags){flags[id]=note;saveFlags();}}
+function flagList(){
+  return Object.keys(flags).map(id=>{const [img,name]=id.split('||');
+    const st=DATA.images[img]?DATA.images[img].station:img;
+    return {img,name,station:st,note:flags[id]};})
+    .sort((a,b)=>{const o=DATA.order.indexOf(a.img)-DATA.order.indexOf(b.img);return o||a.name.localeCompare(b.name);});
+}
+function flagsAsText(){
+  return flagList().map(f=>`• ${f.station} — ${f.name}${f.note?`  (${f.note})`:''}`).join('\n');
+}
+/* render the flagged-review panel into a container; returns true if any flags */
+function renderFlagPanel(container){
+  const list=flagList();
+  if(!list.length){container.innerHTML='';return false;}
+  const items=list.map(f=>`<li><strong>${esc(f.station)}</strong> — ${esc(f.name)}
+    ${f.note?`<span class="fn">“${esc(f.note)}”</span>`:''}</li>`).join('');
+  container.innerHTML=`<div class="flagpanel">
+    <h3>⚑ Flagged for review — ${list.length}</h3>
+    <ul>${items}</ul>
+    <div class="row">
+      <button class="btn" id="flagCopy">Copy list</button>
+      <button class="btn ghost" id="flagClear">Clear all flags</button>
+    </div></div>`;
+  container.querySelector('#flagCopy').onclick=e=>{
+    const txt='Flagged questions to fix:\n'+flagsAsText();
+    navigator.clipboard?.writeText(txt).then(()=>{e.target.textContent='Copied ✓';
+      setTimeout(()=>{e.target.textContent='Copy list';},1500);},()=>{});
+  };
+  container.querySelector('#flagClear').onclick=()=>{flags={};saveFlags();renderFlagPanel(container);};
+  return true;
+}
+
+/* ---- multiple-choice distractors ---- */
+function distractorsFor(q,n=3){
+  const bad=new Set([q.name.toLowerCase(),...q.answers.map(a=>a.toLowerCase())]);
+  const sys=q.img.split('_')[0];
+  const sameImg=DATA.questions.filter(x=>x.img===q.img);
+  const sameSys=DATA.questions.filter(x=>x.img.split('_')[0]===sys);
+  const pick=[],seen=new Set([q.name.toLowerCase()]);
+  const add=pool=>{for(const x of shuffle(pool.slice())){const k=x.name.toLowerCase();
+    if(!seen.has(k)&&!bad.has(k)){seen.add(k);pick.push(x.name);if(pick.length>=n)return;}}};
+  add(sameImg);if(pick.length<n)add(sameSys);if(pick.length<n)add(DATA.questions);
+  return pick.slice(0,n);
+}
+
+/* build station chips + scope note */
+const TOTAL_Q=DATA.questions.length;
+(function(){
+  const chips=$('#stationchips');
+  DATA.order.forEach(k=>{chips.appendChild(el('span','chip',DATA.images[k].station));});
+  $('#qcount').textContent=TOTAL_Q+' questions · '+DATA.order.length+' stations';
+  $('#scopenote').textContent='Covers both Lab Exam 2 systems — the cardiovascular stations (heart, blood, blood vessels, and cardiac muscle) and the respiratory stations (airway, larynx, lungs, alveoli, histology, pleura, and breathing muscles).';
+  // image credits (src/what/lic strings are trusted markup authored in build.py, not user input)
+  const cl=$('#creditlist');
+  (DATA.credits||[]).forEach(c=>{
+    const li=el('li');
+    const lic=c.lic?` <span class="lic">${c.lic}</span>`:'';
+    const link=c.url?` — <a href="${c.url}" target="_blank" rel="noopener">${c.url.replace(/^https?:\/\//,'')}</a>`:'';
+    li.innerHTML=`<span class="w">${c.what}</span>${lic}<span class="s">${c.src}${link}</span>`;
+    cl.appendChild(li);
+  });
+  renderFlagPanel($('#startflags'));
+})();
+
+/* exam-length selector: 20 / 40 / All questions, random-sampled */
+let examLen=40;
+(function(){
+  const seg=$('#lenSeg'), hint=$('#lenHint');
+  function paintHint(){
+    const n=(examLen==='all')?TOTAL_Q:Math.min(examLen,TOTAL_Q);
+    const mins=Math.round(n*2);
+    hint.textContent=n+' of '+TOTAL_Q+' questions · ≈'+mins+' min at 2:00 each';
+  }
+  // hide length buttons that exceed the question pool
+  [...seg.children].forEach(b=>{ if(b.dataset.n!=='all' && (+b.dataset.n)>=TOTAL_Q) b.classList.add('hidden'); });
+  seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    [...seg.children].forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    examLen=(b.dataset.n==='all')?'all':(+b.dataset.n);
+    paintHint();});
+  paintHint();
+})();
+
+/* ---- quiz engine ---- */
+let S=null;
+function start(mode){
+  let qs=DATA.questions.map((q,i)=>({...q,_i:i}));
+  // Exam mode with a fixed length random-samples that many questions (Study = all).
+  if(mode==='exam' && examLen!=='all' && examLen<qs.length){
+    for(let i=qs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[qs[i],qs[j]]=[qs[j],qs[i]];}
+    qs=qs.slice(0,examLen);
+  }
+  if($('#shuffle').checked){ for(let i=qs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[qs[i],qs[j]]=[qs[j],qs[i]];} }
+  else { const ord={};DATA.order.forEach((k,i)=>ord[k]=i); qs.sort((a,b)=>ord[a.img]-ord[b.img]); }
+  S={mode,qs,idx:0,resp:qs.map(()=>({name:'',func:'',blood:null,pick:null,nameOK:null,bloodOK:null,funcSelf:null}))};
+  $('#start').classList.add('hidden');$('#results').classList.add('hidden');
+  $('#quiz').classList.remove('hidden');$('#topbar').classList.remove('hidden');
+  $('#timer').classList.toggle('hidden',mode!=='exam');
+  renderQ();
+}
+$('#startExam').onclick=()=>start('exam');
+$('#startStudy').onclick=()=>start('study');
+$('#startMC').onclick=()=>start('mc');
+$('#quitbtn').onclick=()=>{stopTimer();S=null;$('#quiz').classList.add('hidden');$('#topbar').classList.add('hidden');
+  $('#results').classList.add('hidden');$('#start').classList.remove('hidden');renderFlagPanel($('#startflags'));window.scrollTo(0,0);};
+
+let timerId=null,remain=0;
+function stopTimer(){if(timerId){clearInterval(timerId);timerId=null;}}
+function startTimer(){remain=120;paintTimer();stopTimer();timerId=setInterval(()=>{remain--;paintTimer();
+  if(remain<=0){stopTimer();commit();next();}},1000);}
+function paintTimer(){const t=$('#timer');const m=Math.floor(remain/60),s=remain%60;
+  t.textContent=m+':'+String(s).padStart(2,'0');t.classList.toggle('warn',remain<=15);}
+
+function renderQ(){
+  const q=S.qs[S.idx],im=DATA.images[q.img],r=S.resp[S.idx];
+  $('#prog').style.width=((S.idx)/S.qs.length*100)+'%';
+  const [cx,cy,cw,ch]=im.crop;
+  // map an original-image % point into the cropped frame's %
+  const mapX=x=>(x-cx)/cw*100, mapY=y=>(y-cy)/ch*100;
+  const imgStyle=`width:${10000/cw}%;left:${-cx/cw*100}%;top:${-cy/ch*100}%`;
+  const figAspect=(cw*im.w)/(ch*im.h);
+  const covers=im.covers.map(c=>`<div class="cover" style="left:${mapX(c[0])}%;top:${mapY(c[1])}%;width:${c[2]/cw*100}%;height:${c[3]/ch*100}%"></div>`).join('');
+  const askBlood=q.blood!==null;
+  const flagged=isFlagged(q);
+  let formHTML;
+  if(S.mode==='mc'){
+    if(!r._opts)r._opts=shuffle([q.name,...distractorsFor(q,3)]);
+    const letters=['A','B','C','D','E'];
+    const opts=r._opts.map((o,i)=>`<button type="button" class="mcopt" data-o="${esc(o)}" aria-pressed="${r.pick===o}">
+        <span class="key">${letters[i]}</span><span>${esc(o)}</span></button>`).join('');
+    formHTML=`<div class="form">
+      <div class="field"><label><span class="n">1</span>Identify the pinned structure</label>
+        <div class="mcq" id="fMC">${opts}</div></div>
+      ${askBlood?`<div class="field"><label><span class="n">2</span>Blood at this structure is…</label>
+        <div class="seg" id="fBlood">
+          <button type="button" data-v="Oxygenated" aria-pressed="${r.blood==='Oxygenated'}">Oxygenated</button>
+          <button type="button" data-v="Deoxygenated" aria-pressed="${r.blood==='Deoxygenated'}">Deoxygenated</button>
+        </div></div>`:''}
+    </div>`;
+  }else{
+    formHTML=`<div class="form">
+      <div class="field"><label><span class="n">1</span>Identify the pinned structure</label>
+        <input type="text" id="fName" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the name…" value="${esc(r.name)}"></div>
+      <div class="field"><label><span class="n">2</span>State one function</label>
+        <textarea id="fFunc" placeholder="One function…">${esc(r.func)}</textarea></div>
+      ${askBlood?`<div class="field"><label><span class="n">3</span>Blood at this structure is…</label>
+        <div class="seg" id="fBlood">
+          <button type="button" data-v="Oxygenated" aria-pressed="${r.blood==='Oxygenated'}">Oxygenated</button>
+          <button type="button" data-v="Deoxygenated" aria-pressed="${r.blood==='Deoxygenated'}">Deoxygenated</button>
+        </div></div>`:''}
+    </div>`;
+  }
+  const box=el('div','card');
+  box.innerHTML=`
+    <div class="card-head"><div class="card-head-row">
+      <div class="cap-wrap">
+        <div class="st">${im.station} &middot; ${S.idx+1} / ${S.qs.length}</div>
+        <div class="cap">${im.caption}</div>
+      </div>
+      <button class="flagbtn ${flagged?'on':''}" id="flagBtn" title="Flag this question if something looks wrong">⚑ <span id="flagLbl">${flagged?'Flagged':'Flag'}</span></button>
+    </div></div>
+    <div class="flagnote ${flagged?'show':''}" id="flagNote">
+      <textarea id="flagNoteT" placeholder="What's wrong with this one? (optional — the note helps me fix it)">${esc(flagged?(flags[qid(q)]||''):'')}</textarea>
+    </div>
+    <div class="figure" style="aspect-ratio:${figAspect}">
+      <img src="${DATA.assets[im.asset]}" alt="anatomy image" style="${imgStyle}">${covers}
+      <div class="marker" style="left:${mapX(q.x)}%;top:${mapY(q.y)}%"><div class="ring"></div><div class="core"></div></div>
+    </div>
+    ${formHTML}
+    <div class="actions" id="actions"></div>
+    <div class="fb hidden" id="fb"></div>`;
+  const quiz=$('#quiz');quiz.innerHTML='';quiz.appendChild(box);
+
+  // flag wiring
+  $('#flagBtn').onclick=()=>{toggleFlag(q);const on=isFlagged(q);
+    $('#flagBtn').classList.toggle('on',on);$('#flagLbl').textContent=on?'Flagged':'Flag';
+    $('#flagNote').classList.toggle('show',on);if(on)$('#flagNoteT').focus();};
+  $('#flagNoteT').addEventListener('input',e=>{if(isFlagged(q))setNote(q,e.target.value);});
+
+  // blood segmented wiring
+  if(askBlood){const bl=$('#fBlood');bl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;
+    [...b.parentNode.children].forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');r.blood=b.dataset.v;});}
+
+  // MC option wiring
+  if(S.mode==='mc'){$('#fMC').addEventListener('click',e=>{const b=e.target.closest('.mcopt');if(!b||b.disabled)return;
+    [...b.parentNode.children].forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');r.pick=b.dataset.o;});}
+
+  const act=$('#actions');
+  if(S.mode==='exam'){
+    const b=el('button','btn',S.idx===S.qs.length-1?'Submit & finish':'Submit & next');
+    b.onclick=()=>{commit();next();};act.appendChild(b);
+    act.appendChild(el('span','muted',' the bell auto-advances at 0:00'));
+    startTimer();
+  }else{ // study or mc
+    const check=el('button','btn','Check answer');check.onclick=doCheck;act.appendChild(check);
+    if(S.mode==='study'){const skip=el('button','btn ghost','Reveal');skip.onclick=doCheck;act.appendChild(skip);}
+  }
+  if(S.mode!=='mc'){const fn=$('#fName');if(fn)fn.focus();}
+  window.scrollTo(0,0);
+}
+
+function commit(){const r=S.resp[S.idx];
+  if(S.mode!=='mc'){const fn=$('#fName'),ff=$('#fFunc');if(fn)r.name=fn.value;if(ff)r.func=ff.value;}}
+
+function doCheck(){
+  const q=S.qs[S.idx],r=S.resp[S.idx];commit();
+  const you = S.mode==='mc' ? r.pick : r.name;
+  // In MC the correct option IS the display name, so grade by exact option match.
+  r.nameOK = S.mode==='mc' ? (r.pick===q.name) : checkName(r.name,q.answers);
+  if(q.blood!==null)r.bloodOK=(r.blood===q.blood);
+  // MC: lock + colour the option and blood buttons
+  if(S.mode==='mc'){
+    document.querySelectorAll('.mcopt').forEach(b=>{b.disabled=true;
+      if(b.dataset.o===q.name)b.classList.add('correct');
+      else if(b.dataset.o===r.pick)b.classList.add('wrong');});
+    const bl=$('#fBlood');if(bl)[...bl.children].forEach(x=>x.disabled=true);
+  }
+  const fb=$('#fb');fb.classList.remove('hidden');
+  const bloodLine = q.blood!==null ? `
+    <div class="fb-row"><div class="fb-ico ${r.bloodOK?'ok':'no'}">${r.bloodOK?'✓':'✕'}</div>
+      <div>Blood: <span class="pill ${q.blood==='Oxygenated'?'oxy':'deoxy'}">${q.blood}</span>
+      ${r.bloodOK?'':`<span class="muted"> — you chose ${r.blood||'nothing'}</span>`}</div></div>`:'';
+  const selfgrade = S.mode==='study' ? `
+      <div class="selfgrade"><button class="sg" data-g="1">I got this ✓</button><button class="sg" data-g="0">I missed it</button></div>`:'';
+  fb.innerHTML=`
+    <div class="fb-row"><div class="fb-ico ${r.nameOK?'ok':'no'}">${r.nameOK?'✓':'✕'}</div>
+      <div><span class="ans">${q.name}</span>
+      ${r.nameOK?'<span class="muted"> — correct</span>':`<span class="muted"> — you ${S.mode==='mc'?'picked':'wrote'} “${esc(you)||'—'}”</span>`}</div></div>
+    ${bloodLine}
+    <div class="fb-row"><div class="fb-ico warnb">ƒ</div>
+      <div><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em">${S.mode==='mc'?'Function':'Model function'}</div>
+      <div>${q.func}</div>${selfgrade}</div></div>`;
+  fb.querySelectorAll('.sg').forEach(b=>b.onclick=()=>{
+    r.funcSelf=b.dataset.g==='1';
+    fb.querySelectorAll('.sg').forEach(x=>x.className='sg');
+    b.className='sg '+(r.funcSelf?'gpick':'mpick');
+  });
+  const act=$('#actions');act.innerHTML='';
+  const nx=el('button','btn',S.idx===S.qs.length-1?'See results':'Next station');
+  nx.onclick=()=>next();act.appendChild(nx);
+}
+
+function next(){stopTimer();
+  if(S.idx<S.qs.length-1){S.idx++;renderQ();}
+  else finish();}
+
+function finish(){
+  stopTimer();$('#prog').style.width='100%';$('#quiz').classList.add('hidden');$('#timer').classList.add('hidden');
+  // auto-grade names + blood; functions self-graded (study) or shown for self-review (exam)
+  let nameC=0,nameT=0,bloodC=0,bloodT=0,funcSelf=0,funcT=0;
+  S.qs.forEach((q,i)=>{const r=S.resp[i];
+    if(r.nameOK===null)r.nameOK=checkName(r.name,q.answers);
+    if(q.blood!==null&&r.bloodOK===null)r.bloodOK=(r.blood===q.blood);
+    nameT++; if(r.nameOK)nameC++;
+    if(q.blood!==null){bloodT++;if(r.bloodOK)bloodC++;}
+    funcT++; if(r.funcSelf)funcSelf++;
+  });
+  const res=$('#results');res.classList.remove('hidden');
+  const funcKnown=S.resp.some(r=>r.funcSelf!==null);
+  const items=S.qs.map((q,i)=>{const r=S.resp[i];const im=DATA.images[q.img];
+    const bl=q.blood!==null?`<span class="pill ${q.blood==='Oxygenated'?'oxy':'deoxy'}">${q.blood}</span>
+       ${r.bloodOK?'<span class="fb-ico ok" style="width:18px;height:18px;font-size:11px;display:inline-grid;vertical-align:middle">✓</span>':`<span class="muted">(you: ${r.blood||'—'})</span>`}`:'';
+    const you=S.mode==='mc'?r.pick:r.name;
+    return `<div class="item">
+      <div class="q">${i+1}. ${q.name} ${r.nameOK?'<span class="fb-ico ok" style="width:18px;height:18px;font-size:11px;display:inline-grid;vertical-align:middle">✓</span>':'<span class="fb-ico no" style="width:18px;height:18px;font-size:11px;display:inline-grid;vertical-align:middle">✕</span>'}</div>
+      <div class="line"><span class="yours">You ${S.mode==='mc'?'picked':'answered'}:</span> “${esc(you)||'—'}”</div>
+      ${q.blood!==null?`<div class="line"><span class="yours">Blood:</span> ${bl}</div>`:''}
+      <div class="line"><span class="yours">Function:</span> ${q.func}</div>
+      ${r.func?`<div class="line yours">You wrote: “${esc(r.func)}”</div>`:''}
+    </div>`;}).join('');
+  const eyebrow=S.mode==='exam'?'Practical complete':S.mode==='mc'?'Practice complete':'Study session complete';
+  const funcStat=S.mode==='mc'
+    ? `<div class="stat"><div class="lab">Mode</div><div class="big" style="font-size:20px">Multiple<br>choice</div><div class="sub">recall warm-up</div></div>`
+    : `<div class="stat"><div class="lab">Function ${funcKnown?'(self-marked)':''}</div><div class="big">${funcKnown?funcSelf:'—'}<span class="muted" style="font-size:18px">${funcKnown?'/'+funcT:''}</span></div><div class="sub">${funcKnown?'you marked correct':'self-check below'}</div></div>`;
+  res.innerHTML=`
+    <div class="results">
+      <div class="eyebrow">${eyebrow}</div>
+      <h1 style="font-size:32px;margin-top:6px">Your results</h1>
+      <div class="scoregrid">
+        <div class="stat"><div class="lab">Identification</div><div class="big">${nameC}<span class="muted" style="font-size:18px">/${nameT}</span></div><div class="sub">${Math.round(nameC/nameT*100)}% named correctly</div></div>
+        <div class="stat"><div class="lab">Oxy / Deoxy</div><div class="big">${bloodC}<span class="muted" style="font-size:18px">/${bloodT}</span></div><div class="sub">blood-flow prompts</div></div>
+        ${funcStat}
+      </div>
+      <div id="resultflags"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">
+        <button class="btn" id="again">Run again</button>
+        <button class="btn ghost" id="home">Back to start</button>
+      </div>
+      <h3 style="font-family:var(--sans);text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:var(--ink-soft);margin-top:26px">Review every station</h3>
+      <div class="review">${items}</div>
+    </div>`;
+  renderFlagPanel($('#resultflags'));
+  $('#again').onclick=()=>start(S.mode);
+  $('#home').onclick=$('#quitbtn').onclick;
+  window.scrollTo(0,0);
+}
+</script>
