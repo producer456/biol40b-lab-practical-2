@@ -87,6 +87,15 @@ h1,h2,h3{font-family:var(--serif);font-weight:600;text-wrap:balance;margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .chip{font-size:12.5px;padding:5px 11px;border-radius:99px;border:1px solid var(--line);
   background:var(--card);color:var(--ink-soft)}
+.selquick{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.selquick button{font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink-soft)}
+.selquick button:hover{border-color:var(--accent);color:var(--accent)}
+button.chip{cursor:pointer;transition:opacity .12s,border-color .12s,background .12s}
+button.chip[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+button.chip[aria-pressed=false]{opacity:.5;text-decoration:line-through}
+button.chip::before{content:"✓ ";font-weight:700}
+button.chip[aria-pressed=false]::before{content:"+ "}
 .scope{margin-top:40px;border-top:1px solid var(--line);padding-top:22px}
 .scope h3{font-size:15px;font-family:var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);font-weight:600}
 .credits{margin-top:18px;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
@@ -262,7 +271,13 @@ a.src{color:var(--ink-soft);font-size:12.5px}
     </div>
     <div id="startflags" class="startflags"></div>
     <div class="scope">
-      <h3>Stations in this build</h3>
+      <h3>Choose stations</h3>
+      <div class="selquick" id="selQuick">
+        <button type="button" data-sel="all">All</button>
+        <button type="button" data-sel="none">None</button>
+        <button type="button" data-sel="cardio">Cardiovascular</button>
+        <button type="button" data-sel="resp">Respiratory</button>
+      </div>
       <div class="chips" id="stationchips"></div>
       <p class="muted" style="font-size:13px;margin-top:14px" id="scopenote"></p>
       <details class="credits" id="credits">
@@ -360,19 +375,53 @@ function distractorsFor(q,n=3){
   const sameImg=DATA.questions.filter(x=>x.img===q.img);
   const sameSys=DATA.questions.filter(x=>x.img.split('_')[0]===sys);
   const pick=[],seen=new Set([q.name.toLowerCase()]);
+  // skip a candidate if it would actually be a correct answer for q (avoids ambiguous options)
   const add=pool=>{for(const x of shuffle(pool.slice())){const k=x.name.toLowerCase();
-    if(!seen.has(k)&&!bad.has(k)){seen.add(k);pick.push(x.name);if(pick.length>=n)return;}}};
+    if(!seen.has(k)&&!bad.has(k)&&!checkName(x.name,q.answers)){seen.add(k);pick.push(x.name);if(pick.length>=n)return;}}};
   add(sameImg);if(pick.length<n)add(sameSys);if(pick.length<n)add(DATA.questions);
   return pick.slice(0,n);
 }
 
-/* build station chips + scope note */
+/* ---- station selector + exam-length (share the selected-station count) ---- */
 const TOTAL_Q=DATA.questions.length;
+let selectedStations=new Set(DATA.order);   // default: all stations included
+let examLen=40;
+const selQuestions=()=>DATA.questions.filter(q=>selectedStations.has(q.img));
+function paintCounts(){
+  document.querySelectorAll('#stationchips button').forEach(b=>b.setAttribute('aria-pressed',selectedStations.has(b.dataset.img)));
+  const nq=selQuestions().length, ns=selectedStations.size, allSel=ns===DATA.order.length;
+  $('#qcount').textContent = allSel ? (TOTAL_Q+' questions · '+ns+' stations')
+                                    : (nq+' of '+TOTAL_Q+' questions · '+ns+'/'+DATA.order.length+' stations');
+  const base=nq, n=(examLen==='all')?base:Math.min(examLen,base);
+  $('#lenHint').textContent = base===0 ? 'Pick at least one station'
+    : (n+' of '+base+' selected · ≈'+Math.round(n*2)+' min at 2:00 each');
+}
 (function(){
+  // station toggle chips
   const chips=$('#stationchips');
-  DATA.order.forEach(k=>{chips.appendChild(el('span','chip',DATA.images[k].station));});
-  $('#qcount').textContent=TOTAL_Q+' questions · '+DATA.order.length+' stations';
-  $('#scopenote').textContent='Covers both Lab Exam 2 systems — the cardiovascular stations (heart, blood, blood vessels, and cardiac muscle) and the respiratory stations (airway, larynx, lungs, alveoli, histology, pleura, and breathing muscles).';
+  DATA.order.forEach(k=>{
+    const b=el('button','chip',DATA.images[k].station);
+    b.type='button';b.dataset.img=k;b.setAttribute('aria-pressed','true');
+    b.onclick=()=>{selectedStations.has(k)?selectedStations.delete(k):selectedStations.add(k);paintCounts();};
+    chips.appendChild(b);
+  });
+  // quick-select buttons
+  $('#selQuick').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    const s=b.dataset.sel;
+    if(s==='all')selectedStations=new Set(DATA.order);
+    else if(s==='none')selectedStations=new Set();
+    else if(s==='cardio')selectedStations=new Set(DATA.order.filter(k=>!k.startsWith('resp_')));
+    else if(s==='resp')selectedStations=new Set(DATA.order.filter(k=>k.startsWith('resp_')));
+    paintCounts();});
+  // exam-length picker
+  const seg=$('#lenSeg');
+  [...seg.children].forEach(b=>{ if(b.dataset.n!=='all' && (+b.dataset.n)>=TOTAL_Q) b.classList.add('hidden'); });
+  seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    [...seg.children].forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    examLen=(b.dataset.n==='all')?'all':(+b.dataset.n);
+    paintCounts();});
+  $('#scopenote').textContent='Covers both Lab Exam 2 systems — the cardiovascular stations (heart, blood, blood vessels, and cardiac muscle) and the respiratory stations (airway, larynx, lungs, alveoli, histology, pleura, and breathing muscles). Toggle any station above to focus your run.';
   // image credits (src/what/lic strings are trusted markup authored in build.py, not user input)
   const cl=$('#creditlist');
   (DATA.credits||[]).forEach(c=>{
@@ -383,31 +432,14 @@ const TOTAL_Q=DATA.questions.length;
     cl.appendChild(li);
   });
   renderFlagPanel($('#startflags'));
-})();
-
-/* exam-length selector: 20 / 40 / All questions, random-sampled */
-let examLen=40;
-(function(){
-  const seg=$('#lenSeg'), hint=$('#lenHint');
-  function paintHint(){
-    const n=(examLen==='all')?TOTAL_Q:Math.min(examLen,TOTAL_Q);
-    const mins=Math.round(n*2);
-    hint.textContent=n+' of '+TOTAL_Q+' questions · ≈'+mins+' min at 2:00 each';
-  }
-  // hide length buttons that exceed the question pool
-  [...seg.children].forEach(b=>{ if(b.dataset.n!=='all' && (+b.dataset.n)>=TOTAL_Q) b.classList.add('hidden'); });
-  seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-    [...seg.children].forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    examLen=(b.dataset.n==='all')?'all':(+b.dataset.n);
-    paintHint();});
-  paintHint();
+  paintCounts();
 })();
 
 /* ---- quiz engine ---- */
 let S=null;
 function start(mode){
-  let qs=DATA.questions.map((q,i)=>({...q,_i:i}));
+  let qs=selQuestions().map((q,i)=>({...q,_i:i}));
+  if(!qs.length){$('#lenHint').textContent='Pick at least one station to begin';return;}
   // Exam mode with a fixed length random-samples that many questions (Study = all).
   if(mode==='exam' && examLen!=='all' && examLen<qs.length){
     for(let i=qs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[qs[i],qs[j]]=[qs[j],qs[i]];}

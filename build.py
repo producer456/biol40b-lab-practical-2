@@ -470,9 +470,12 @@ for name, meta in IMAGES.items():
 
 questions_payload = []
 for img,x,y,name,answers,func,blood in Q:
+    # The displayed/canonical name must always count as a correct typed answer
+    # (some names have parentheticals or slashes that aren't in `answers`).
+    ans = list(dict.fromkeys([*answers, name]))
     questions_payload.append({
         "img": img, "x": x, "y": y, "name": name,
-        "answers": answers, "func": func, "blood": blood,
+        "answers": ans, "func": func, "blood": blood,
     })
 
 payload = {"assets": assets, "images": images_payload, "questions": questions_payload,
